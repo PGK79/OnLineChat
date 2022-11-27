@@ -41,9 +41,7 @@ public class Server implements ConnectionListener {
     public static Server getInstance() {
         if (instance == null) {
             synchronized (Server.class) {
-                if (instance == null) {
-                    instance = new Server();
-                }
+                instance = new Server();
             }
         }
         return instance;
@@ -90,9 +88,5 @@ public class Server implements ConnectionListener {
             System.err.println("ОШИБКА: Файл свойств отсутствует!");
         }
         return property;
-    }
-
-    public static List<Connection> getConnections() {
-        return connections;
     }
 }
