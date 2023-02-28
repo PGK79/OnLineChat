@@ -7,13 +7,13 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 
 public class Connection {
-    private final Socket SOCKET;
+    private final Socket socket;
     private Thread thread;
-    private final BufferedReader IN;
-    private final BufferedWriter OUT;
-    private final ConnectionListener LISTENER;
-    private final String FILENAME = "file.log";
-    private String CLIENT_FILENAME = "fileClient.log";
+    private final BufferedReader in;
+    private final BufferedWriter out;
+    private final ConnectionListener listener;
+    private final String fileName = "file.log";
+    private String clientFileName = "fileClient.log";
     private BufferedReader reader;
     private String nickName;
 
@@ -22,11 +22,11 @@ public class Connection {
     }
 
     public Connection(Socket socket, ConnectionListener listener, String nickName) throws IOException {
-        this.SOCKET = socket;
-        this.LISTENER = listener;
+        this.socket = socket;
+        this.listener = listener;
         this.nickName = nickName;
-        IN = new BufferedReader(new InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8));
-        OUT = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8));
+        in = new BufferedReader(new InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8));
+        out = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8));
         reader = new BufferedReader(new InputStreamReader(System.in));
 
         new Thread(() -> {
@@ -34,9 +34,9 @@ public class Connection {
                 while (true) {
                     try {
                         String serverWord = null;
-                        serverWord = IN.readLine();
+                        serverWord = in.readLine();
                         System.out.println(serverWord);
-                        saveFile(serverWord, CLIENT_FILENAME);
+                        saveFile(serverWord, clientFileName);
                     } catch (IOException e) {
                         listener.exception(Connection.this, e);
                         break;
@@ -62,7 +62,7 @@ public class Connection {
                     } catch (IOException e) {
                         listener.exception(Connection.this, e);
                     }
-                    saveFileClient(msg, nickName, CLIENT_FILENAME);
+                    saveFileClient(msg, nickName, clientFileName);
                     sendString(msg, nickName);
                 }
             } finally {
@@ -73,21 +73,21 @@ public class Connection {
     }
 
     public Connection(Socket socket, ConnectionListener listener) throws IOException {
-        this.SOCKET = socket;
-        this.LISTENER = listener;
-        IN = new BufferedReader(new InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8));
-        OUT = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8));
+        this.socket = socket;
+        this.listener = listener;
+        in = new BufferedReader(new InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8));
+        out = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8));
         thread = new Thread(() -> {
             String nick = null;
             try {
-                nick = IN.readLine();
+                nick = in.readLine();
                 listener.ready(Connection.this, nick);
 
                 Connection.this.saveFile("Подключился: " + nick, "file.log");
 
                 while (!thread.isInterrupted()) {
-                    String msg = IN.readLine();
-                    Connection.this.saveFile(msg, FILENAME);
+                    String msg = in.readLine();
+                    Connection.this.saveFile(msg, fileName);
                     listener.receive(Connection.this, msg);
                 }
             } catch (IOException e) {
@@ -101,11 +101,11 @@ public class Connection {
 
     public synchronized boolean sendString(String value, String nickName) {
         try {
-            OUT.write(nickName + ": " + value + "\r\n");
-            OUT.flush();
+            out.write(nickName + ": " + value + "\r\n");
+            out.flush();
             return true;
         } catch (IOException e) {
-            LISTENER.exception(Connection.this, e);
+            listener.exception(Connection.this, e);
             disconnect();
             return false;
         }
@@ -113,11 +113,11 @@ public class Connection {
 
     public synchronized boolean sendString(String nickName) {
         try {
-            OUT.write(nickName + "\n");
-            OUT.flush();
+            out.write(nickName + "\n");
+            out.flush();
             return true;
         } catch (IOException e) {
-            LISTENER.exception(Connection.this, e);
+            listener.exception(Connection.this, e);
             disconnect();
             return false;
         }
@@ -126,10 +126,10 @@ public class Connection {
     public synchronized boolean disconnect() {
         thread.isInterrupted();
         try {
-            SOCKET.close();
+            socket.close();
             return true;
         } catch (IOException e) {
-            LISTENER.exception(Connection.this, e);
+            listener.exception(Connection.this, e);
             return false;
         }
     }
@@ -183,6 +183,6 @@ public class Connection {
 
     @Override
     public String toString() {
-        return "Connection: " + SOCKET.getInetAddress() + ": " + SOCKET.getPort();
+        return "Connection: " + socket.getInetAddress() + ": " + socket.getPort();
     }
 }
